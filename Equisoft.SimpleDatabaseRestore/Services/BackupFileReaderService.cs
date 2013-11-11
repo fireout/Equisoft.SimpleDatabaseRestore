@@ -7,7 +7,6 @@ namespace Equisoft.SimpleDatabaseRestore.Services
 {
     public class BackupFileReaderService : IBackupFileReaderService
     {
-
         public BackupInfo GetBackupInfo(string backupFileName, string targetInstanceName)
         {
             var server = new Server(targetInstanceName);
@@ -21,7 +20,7 @@ namespace Equisoft.SimpleDatabaseRestore.Services
             var info = new BackupInfo();
             restoreDb.Action = RestoreActionType.Database;
             restoreDb.Devices.AddDevice(backupFileName, DeviceType.File);
-            var fileList = restoreDb.ReadFileList(server);
+            DataTable fileList = restoreDb.ReadFileList(server);
 
             foreach (DataRow row in fileList.Rows)
             {
@@ -31,7 +30,7 @@ namespace Equisoft.SimpleDatabaseRestore.Services
                 }
                 else if (row.Field<string>("Type").Equals("L"))
                 {
-                    info.LogFiles.Add(new DatabaseFile { LogicalName = row.Field<string>("LogicalName") });
+                    info.LogFiles.Add(new DatabaseFile {LogicalName = row.Field<string>("LogicalName")});
                 }
             }
 

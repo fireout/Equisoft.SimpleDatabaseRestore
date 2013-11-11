@@ -5,19 +5,16 @@ using Equisoft.SimpleDatabaseRestore.Services;
 
 namespace Equisoft.SimpleDatabaseRestore.Repositories
 {
-    public interface ISharedBackupsRepository
-    {
-        IList<DatabaseServer> GetAllServers();
-    }
-
     public class SharedBackupsRepository : ISharedBackupsRepository
     {
-        private readonly IDatabaseBackupFolderScannerService scannerService;
         private readonly IBackupFileNameParserService fileNameParserService;
-        private readonly string sharedBackupsPath;
+        private readonly IDatabaseBackupFolderScannerService scannerService;
         private readonly string searchPattern;
+        private readonly string sharedBackupsPath;
 
-        public SharedBackupsRepository(IDatabaseBackupFolderScannerService scannerService, IBackupFileNameParserService fileNameParserService, string sharedBackupsPath, string searchPattern)
+        public SharedBackupsRepository(IDatabaseBackupFolderScannerService scannerService,
+                                       IBackupFileNameParserService fileNameParserService, string sharedBackupsPath,
+                                       string searchPattern)
         {
             this.scannerService = scannerService;
             this.fileNameParserService = fileNameParserService;
@@ -27,14 +24,16 @@ namespace Equisoft.SimpleDatabaseRestore.Repositories
 
         public IList<DatabaseServer> GetAllServers()
         {
-            var foundFiles = scannerService.ScanFolderAndSubdirectory(sharedBackupsPath, searchPattern);
+            IList<BackupFile> foundFiles = scannerService.ScanFolderAndSubdirectory(sharedBackupsPath, searchPattern);
             var servers = new List<DatabaseServer>();
 
-            foreach (var file in foundFiles)
+            foreach (BackupFile file in foundFiles)
             {
-                var parseResult = fileNameParserService.Parse(sharedBackupsPath, file.DirectoryFullName, file.FileName, file.Extension);
+                IDictionary<string, string> parseResult = fileNameParserService.Parse(sharedBackupsPath,
+                                                                                      file.DirectoryFullName,
+                                                                                      file.FileName, file.Extension);
 
-                var server = servers.FirstOrDefault(s => s.Name == parseResult["server"]);
+                DatabaseServer server = servers.FirstOrDefault(s => s.Name == parseResult["server"]);
 
                 if (server == null)
                 {
@@ -43,7 +42,7 @@ namespace Equisoft.SimpleDatabaseRestore.Repositories
                     servers.Add(server);
                 }
 
-                var instance = server.Instances.FirstOrDefault(s => s.Name == parseResult["instance"]);
+                DatabaseInstance instance = server.Instances.FirstOrDefault(s => s.Name == parseResult["instance"]);
 
                 if (instance == null)
                 {
@@ -52,7 +51,7 @@ namespace Equisoft.SimpleDatabaseRestore.Repositories
                     server.Instances.Add(instance);
                 }
 
-                var database  = instance.Databases.FirstOrDefault(s => s.Name == parseResult["database"]);
+                Database database = instance.Databases.FirstOrDefault(s => s.Name == parseResult["database"]);
 
                 if (database == null)
                 {
@@ -61,8 +60,7 @@ namespace Equisoft.SimpleDatabaseRestore.Repositories
                     instance.Databases.Add(database);
                 }
 
-                database.Backups.Add(new DatabaseBackup {FilePath = file.FileName,Name = file.Name});
-
+                database.Backups.Add(new DatabaseBackup {FilePath = file.FileName, Name = file.Name});
             }
 
             return servers.OrderBy(s => s.Name).ToList();

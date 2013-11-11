@@ -1,8 +1,6 @@
 ﻿using System.Collections.Generic;
-using System.IO;
 using Equisoft.SimpleDatabaseRestore.Models;
 using Equisoft.SimpleDatabaseRestore.Repositories;
-using Equisoft.SimpleDatabaseRestore.Services;
 using Nancy;
 
 namespace Equisoft.SimpleDatabaseRestore.Modules
@@ -20,9 +18,6 @@ namespace Equisoft.SimpleDatabaseRestore.Modules
             this.targetDatabaseServerRepositoty = targetDatabaseServerRepositoty;
 
             Get["/"] = Index;
-
-            
-
         }
 
         private dynamic Index(dynamic parameters)
@@ -31,13 +26,11 @@ namespace Equisoft.SimpleDatabaseRestore.Modules
             IList<DatabaseServer> targetInstances = targetDatabaseServerRepositoty.GetAll();
             dynamic model = new
                 {
-                    FoundFiles = foundFiles, TargertInstances = targetInstances
+                    FoundFiles = foundFiles,
+                    TargertInstances = targetInstances
                 };
 
             return View["index", model];
         }
-
-
-        
     }
 }

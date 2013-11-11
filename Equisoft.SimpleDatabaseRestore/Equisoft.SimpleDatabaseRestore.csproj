@@ -147,19 +147,21 @@
     <Compile Include="Models\DatabaseServer.cs" />
     <Compile Include="Models\FileToRestore.cs" />
     <Compile Include="Modules\IndexModule.cs" />
-    <Compile Include="Modules\IRestoreDatabaseService.cs" />
     <Compile Include="Modules\ResquestRestoreModule.cs" />
-    <Compile Include="Modules\RestoreDatabaseService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Repositories\IScriptsRepository.cs" />
+    <Compile Include="Repositories\ISharedBackupsRepository.cs" />
     <Compile Include="Repositories\ITargetDatabaseServerRepositoty.cs" />
+    <Compile Include="Repositories\ScriptsRepository.cs" />
     <Compile Include="Repositories\SharedBackupsRepository.cs" />
     <Compile Include="Repositories\TargetDatabaseServerRepositoty.cs" />
     <Compile Include="Services\BackupFileReaderService.cs" />
     <Compile Include="Services\DatabaseBackupFolderScannerService.cs" />
-    <Compile Include="Services\DatabaseRestoreService.cs" />
     <Compile Include="Services\IBackupFileNameParserService.cs" />
     <Compile Include="Services\IBackupFileReaderService.cs" />
     <Compile Include="Services\IDatabaseBackupFolderScannerService.cs" />
+    <Compile Include="Services\IRestoreDatabaseService.cs" />
+    <Compile Include="Services\RestoreDatabaseService.cs" />
     <Compile Include="Services\SharedBackupFileNameParserService.cs" />
   </ItemGroup>
   <ItemGroup>

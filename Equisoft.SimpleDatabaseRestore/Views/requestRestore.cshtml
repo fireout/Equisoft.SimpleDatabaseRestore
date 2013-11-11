@@ -36,23 +36,24 @@
 
 <div class="panel panel-primary">
     <div class="panel-heading">
-        <h3 class="panel-title">Script executed after the restore</h3>
+        <h3 class="panel-title">Script executed after the restore (<a href="file:@Model.ScriptsRootPath">@Model.ScriptsRootPath</a>)  </h3>
     </div>
     <div class="panel-body">
         <ol>
-            <li><a href="#">Script 1.sql</a></li>
-            <li><a href="#">Script 2.sql</a></li>
-            <li><a href="#">Script 3.sql</a></li>
+           @foreach (var script in Model.ScriptsToExecute)
+           {
+               <li><a href="file:@script.Replace('\\','/')">@script</a></li>
+           }
         </ol>
     </div>
 </div>
 
 
 <form action="~/Restore" method="POST" enctype="multipart/form-data">
-    <input type="hidden" name="@Model.TargetDatabase"/>
-    <input type="hidden" name="@Model.TargetInstance"/>
-    <input type="hidden" name="@Model.BackupFile"/>
-    <div class="form-group">
+    <input type="hidden" name="TargetDatabase" value="@Model.TargetDatabase"/>
+    <input type="hidden" name="TargetInstance" value="@Model.TargetInstance"/>
+    <input type="hidden" name="BackupFile" value="@Model.FullBackupFile"/>
+    <div class="form-group" style="display: none;">
         <label for="Additional script">Upload additional script to execute</label>
         <input type="file" name="myfiles" multiple="multiple" />
         <div class="alert alert-info">

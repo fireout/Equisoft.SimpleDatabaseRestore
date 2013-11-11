@@ -30,6 +30,14 @@
                     @ViewBag.Errors
                 </div>
             }
+            
+            @if (ViewBag.Success != null)
+            {
+                <div class="alert alert-success">
+                    @ViewBag.Success
+                </div>
+            }
+
 
             @RenderBody()
         </div>
