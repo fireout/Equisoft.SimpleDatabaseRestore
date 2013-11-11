@@ -1,0 +1,52 @@
+﻿@using System.Collections.Generic
+@using Nancy.Session
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="~/favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="~/favicon.ico" type="image/x-icon">
+    <title>EquiSoft - Simple Database Restore</title>
+    <link rel="stylesheet" href="~/Content/styles/chosen.min.css" />
+    <link rel="stylesheet" href="~/Content/styles/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/Content/styles/bootstrap/bootstrap-theme.min.css" />
+    <script type="text/javascript" src="@Url.Content("~/content/scripts/jquery-1.9.1.min.js")"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h3 class="text-muted">
+                <a class="brand" href="@Url.Content("~/")">
+                    <img alt="Equisoft" src="~/Content/styles/logo.png" />
+                </a>Simple Database Restore</h3>
+
+        </div>
+        <div class="row">
+            @if (ViewBag.Errors != null)
+            {
+                <div class="alert alert-danger">
+                    @ViewBag.Errors
+                </div>
+            }
+
+            @RenderBody()
+        </div>
+        <hr />
+        <footer>
+            <p>&copy; EquiSoft 2013</p>
+        </footer>
+    </div>
+    <script type="text/javascript" src="@Url.Content("~/content/scripts/bootstrap.min.js")"></script>
+    <script type="text/javascript" src="@Url.Content("~/content/scripts/chosen.jquery.min.js")"></script>
+    <script type="text/javascript">
+
+
+        $(function () {
+            $('.chosen').chosen({ search_contains: true, allow_single_deselect: true });
+        });
+
+    </script>
+</body>
+</html>
