@@ -10,10 +10,9 @@ namespace Equisoft.SimpleDatabaseRestore.Services
         public IList<BackupFile> ScanFolderAndSubdirectory(string path, string searchPattern)
         {
             return Directory.GetFiles(path, searchPattern, SearchOption.AllDirectories)
-                     .Select(x => new BackupFile(x))
-                     .OrderBy(info => info.DirectoryFullName)
-                     .ToList();
+                            .Select(x => new BackupFile(x))
+                            .OrderBy(info => info.DirectoryFullName)
+                            .ToList();
         }
-
     }
 }

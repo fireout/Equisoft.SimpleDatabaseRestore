@@ -4,10 +4,8 @@ namespace Equisoft.SimpleDatabaseRestore.Models
 {
     public class BackupFile
     {
-
         public BackupFile()
         {
-            
         }
 
         public BackupFile(string fileName)

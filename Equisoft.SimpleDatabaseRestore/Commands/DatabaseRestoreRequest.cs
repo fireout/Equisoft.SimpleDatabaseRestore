@@ -11,6 +11,8 @@ namespace Equisoft.SimpleDatabaseRestore.Commands
         public string TargetInstance { get; set; }
         public string TargetDatabase { get; set; }
         public IList<FileToRestore> FilesLists { get; set; }
-        
+        public IList<string> ScriptsToExecute { get; set; }
+        public string ScriptsRootPath { get; set; }
+
     }
 }

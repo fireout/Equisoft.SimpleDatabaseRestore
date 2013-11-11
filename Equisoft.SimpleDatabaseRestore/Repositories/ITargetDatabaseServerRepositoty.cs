@@ -1,8 +1,6 @@
 ﻿using System.Collections.Generic;
 using Equisoft.SimpleDatabaseRestore.Models;
-using Microsoft.SqlServer.Management.Smo;
 using Database = Microsoft.SqlServer.Management.Smo.Database;
-using DatabaseFile = Equisoft.SimpleDatabaseRestore.Models.DatabaseFile;
 
 namespace Equisoft.SimpleDatabaseRestore.Repositories
 {
@@ -22,6 +20,5 @@ namespace Equisoft.SimpleDatabaseRestore.Repositories
 
         public DatabaseFile DataFile { get; set; }
         public IList<DatabaseFile> LogsFiles { get; set; }
-
     }
 }

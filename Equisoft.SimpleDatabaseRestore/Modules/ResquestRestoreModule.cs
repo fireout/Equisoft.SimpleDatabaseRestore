@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
-using Equisoft.SimpleDatabaseRestore.Commands;
+﻿using Equisoft.SimpleDatabaseRestore.Commands;
+using Equisoft.SimpleDatabaseRestore.Services;
 using Nancy;
+using Nancy.Responses;
 
 namespace Equisoft.SimpleDatabaseRestore.Modules
 {
-    public class ResquestRestoreModule:NancyModule
+    public class ResquestRestoreModule : NancyModule
     {
         private readonly IRestoreDatabaseService restoreDatabaseService;
 
@@ -18,20 +19,33 @@ namespace Equisoft.SimpleDatabaseRestore.Modules
 
         private dynamic Restore(dynamic parameters)
         {
-            return View["requestRestore"];
+            string targetInstanceName = Request.Form.TargetInstance;
+            string targetDatabase = Request.Form.TargetDatabase;
+            string backupFileName = Request.Form.BackupFile;
+
+            DatabaseRestoreRequest request = restoreDatabaseService.GenerateRequest(backupFileName, targetInstanceName,
+                                                                                    targetDatabase);
+
+            restoreDatabaseService.Restore(request);
+
+            Session["Success"] = string.Format("Database {0} was successfuly restored on {1}", targetDatabase,
+                                               targetInstanceName);
+
+            return new RedirectResponse("/");
         }
 
         private dynamic ConfirmRestoreRequest(dynamic parameters)
         {
             if (!Request.Query.targetDatabase.HasValue || !Request.Query.backupFileName.HasValue ||
-                string.IsNullOrWhiteSpace(Request.Query.targetDatabase) || string.IsNullOrWhiteSpace(Request.Query.backupFileName))
+                string.IsNullOrWhiteSpace(Request.Query.targetDatabase) ||
+                string.IsNullOrWhiteSpace(Request.Query.backupFileName))
             {
                 Session["Errors"] = "Please select the backup file and the target database before submitting a request.";
-                    //new List<string>
-                    //{
-                    //    "Please select the backup file and the target database before submitting a request."
-                    //};
-                return new Nancy.Responses.RedirectResponse("/");
+                //new List<string>
+                //{
+                //    "Please select the backup file and the target database before submitting a request."
+                //};
+                return new RedirectResponse("/");
             }
 
 
@@ -42,7 +56,8 @@ namespace Equisoft.SimpleDatabaseRestore.Modules
 
             string backupFileName = Request.Query.backupFileName;
 
-            DatabaseRestoreRequest model = restoreDatabaseService.GenerateRequest(backupFileName, targetInstanceName, targetDatabase);
+            DatabaseRestoreRequest model = restoreDatabaseService.GenerateRequest(backupFileName, targetInstanceName,
+                                                                                  targetDatabase);
 
             return View["requestRestore", model];
         }

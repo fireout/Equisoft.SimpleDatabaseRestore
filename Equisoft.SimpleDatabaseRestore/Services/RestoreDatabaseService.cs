@@ -1,32 +1,39 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.IO;
 using Equisoft.SimpleDatabaseRestore.Commands;
 using Equisoft.SimpleDatabaseRestore.Models;
 using Equisoft.SimpleDatabaseRestore.Repositories;
-using Equisoft.SimpleDatabaseRestore.Services;
+using Microsoft.SqlServer.Management.Common;
 using Microsoft.SqlServer.Management.Smo;
 using Database = Microsoft.SqlServer.Management.Smo.Database;
 using DatabaseFile = Equisoft.SimpleDatabaseRestore.Models.DatabaseFile;
 
-namespace Equisoft.SimpleDatabaseRestore.Modules
+namespace Equisoft.SimpleDatabaseRestore.Services
 {
     public class RestoreDatabaseService : IRestoreDatabaseService
     {
         private readonly IBackupFileReaderService backupFileReaderService;
+        private readonly IScriptsRepository scriptsRepository;
         private readonly ITargetDatabaseServerRepositoty targetDatabaseServerRepositoty;
 
         public RestoreDatabaseService(ITargetDatabaseServerRepositoty targetDatabaseServerRepositoty,
-                                      IBackupFileReaderService backupFileReaderService)
+                                      IBackupFileReaderService backupFileReaderService,
+                                      IScriptsRepository scriptsRepository)
         {
             this.targetDatabaseServerRepositoty = targetDatabaseServerRepositoty;
             this.backupFileReaderService = backupFileReaderService;
+            this.scriptsRepository = scriptsRepository;
         }
 
 
-        public DatabaseRestoreRequest GenerateRequest(string backupFileName, string targetInstanceName, string targetDatabase)
+        public DatabaseRestoreRequest GenerateRequest(string backupFileName, string targetInstanceName,
+                                                      string targetDatabase)
         {
-            BackupInfo backupInfo = backupFileReaderService.GetBackupInfo(backupFileName,targetInstanceName);
+            BackupInfo backupInfo = backupFileReaderService.GetBackupInfo(backupFileName, targetInstanceName);
 
-            ServerInfo targetServerInfo = targetDatabaseServerRepositoty.GetServerInfo(targetInstanceName, targetDatabase);
+            ServerInfo targetServerInfo = targetDatabaseServerRepositoty.GetServerInfo(targetInstanceName,
+                                                                                       targetDatabase);
 
             IList<FileToRestore> filesList = MergeFilesLists(backupInfo, targetServerInfo);
 
@@ -35,7 +42,9 @@ namespace Equisoft.SimpleDatabaseRestore.Modules
                     FullBackupFile = backupFileName,
                     TargetInstance = targetInstanceName,
                     TargetDatabase = targetDatabase,
-                    FilesLists = filesList
+                    FilesLists = filesList,
+                    ScriptsToExecute = scriptsRepository.GetScripts(targetInstanceName, targetDatabase),
+                    ScriptsRootPath = scriptsRepository.RoothPath
                 };
         }
 
@@ -48,10 +57,10 @@ namespace Equisoft.SimpleDatabaseRestore.Modules
             database.DatabaseOptions.UserAccess = DatabaseUserAccess.Single;
             database.Alter();
 
-            var restoreDb = new Restore {Database = database.Name, Action = RestoreActionType.Database};
+            var restoreDb = new Restore { Database = database.Name, Action = RestoreActionType.Database };
 
             //Specify whether you want to restore database or files or log etc
-            restoreDb.Devices.AddDevice(request.BackupFile, DeviceType.File);
+            restoreDb.Devices.AddDevice(request.FullBackupFile, DeviceType.File);
 
             // For now we only support database replacement.
             restoreDb.ReplaceDatabase = true;
@@ -62,7 +71,8 @@ namespace Equisoft.SimpleDatabaseRestore.Modules
             // Associate the correct physical path for each file to be restored
             foreach (FileToRestore fileToRestore in request.FilesLists)
             {
-                restoreDb.RelocateFiles.Add(new RelocateFile(fileToRestore.BackupLogicalName, fileToRestore.TargetPhysicalPath));
+                restoreDb.RelocateFiles.Add(new RelocateFile(fileToRestore.BackupLogicalName,
+                                                             fileToRestore.TargetPhysicalPath));
             }
 
             // Magic!
@@ -72,6 +82,29 @@ namespace Equisoft.SimpleDatabaseRestore.Modules
             // Since we only support DEV/TEST/DEMO, we dont want the overhead of the other recovery models.
             database.RecoveryModel = RecoveryModel.Simple;
             database.Alter();
+
+            string sqlConnectionString = string.Format("Integrated Security=SSPI;Persist Security Info=True;Initial Catalog={1};Data Source={0}",server.Name,database.Name);
+
+            foreach (var script in request.ScriptsToExecute)
+            {
+                var fileInfo = new FileInfo(script);
+
+
+                string sql;
+                
+                using (var text = fileInfo.OpenText())
+                {
+                    sql = text.ReadToEnd();   
+                    text.Close();
+                }
+                 
+
+                SqlConnection connection = new SqlConnection(sqlConnectionString);
+                Server srv = new Server(new ServerConnection(connection));
+                srv.ConnectionContext.SqlExecutionModes = SqlExecutionModes.ExecuteAndCaptureSql;
+                srv.ConnectionContext.ExecuteNonQuery(sql);
+            }
+
         }
 
         public DatabaseRestoreRequest GenerateDatabaseRestoreRequestService(string backupFileName,

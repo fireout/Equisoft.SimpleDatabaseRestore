@@ -8,6 +8,7 @@ using Equisoft.SimpleDatabaseRestore.Models;
 using Microsoft.SqlServer.Management.Common;
 using Microsoft.SqlServer.Management.Smo;
 using Database = Microsoft.SqlServer.Management.Smo.Database;
+using DatabaseFile = Equisoft.SimpleDatabaseRestore.Models.DatabaseFile;
 
 namespace Equisoft.SimpleDatabaseRestore.Repositories
 {
@@ -23,9 +24,8 @@ namespace Equisoft.SimpleDatabaseRestore.Repositories
 
         public IList<DatabaseServer> GetAll()
         {
-
-            var instance = SqlDataSourceEnumerator.Instance;
-            var table = instance.GetDataSources();
+            SqlDataSourceEnumerator instance = SqlDataSourceEnumerator.Instance;
+            DataTable table = instance.GetDataSources();
             var servers = new List<DatabaseServer>();
 
 
@@ -50,29 +50,27 @@ namespace Equisoft.SimpleDatabaseRestore.Repositories
                 }
 
                 var dbInstance = new DatabaseInstance {Name = foundInstance.InstanceName};
-                
+
 
                 try
                 {
                     var serverInfo = new Server(foundInstance.Server + "\\" + foundInstance.InstanceName);
 
                     foreach (Database database in serverInfo.Databases.Cast<Database>()
-                                                                      .Where(database => database.Status == DatabaseStatus.Normal))
+                                                            .Where(database => database.Status == DatabaseStatus.Normal)
+                        )
                     {
-                        dbInstance.Databases.Add(new Models.Database{Name = database.Name});
+                        dbInstance.Databases.Add(new Models.Database {Name = database.Name});
                     }
                 }
                 catch (ConnectionFailureException)
                 {
-                    
-                    
                 }
-                
+
                 if (dbInstance.Databases.Any())
                 {
                     server.Instances.Add(dbInstance);
                 }
-
             }
 
             return servers.OrderBy(s => s.Name).ToList();
@@ -81,7 +79,7 @@ namespace Equisoft.SimpleDatabaseRestore.Repositories
         public ServerInfo GetServerInfo(string targetInstance, string targetDatabase)
         {
             var server = new Server(targetInstance);
-            var database = server.Databases[targetDatabase];
+            Database database = server.Databases[targetDatabase];
 
             return GetServerInfo(database);
         }
@@ -90,13 +88,13 @@ namespace Equisoft.SimpleDatabaseRestore.Repositories
         public ServerInfo GetServerInfo(Database database)
         {
             var info = new ServerInfo();
-            var dataFile = database.FileGroups[0].Files[0];
+            DataFile dataFile = database.FileGroups[0].Files[0];
 
-            info.DataFile = new Models.DatabaseFile {LogicalName = dataFile.Name, PhysicalPath = dataFile.FileName};
+            info.DataFile = new DatabaseFile {LogicalName = dataFile.Name, PhysicalPath = dataFile.FileName};
 
             foreach (LogFile logFile in database.LogFiles)
             {
-                info.LogsFiles.Add(new Models.DatabaseFile { LogicalName = logFile.Name, PhysicalPath = logFile.FileName });
+                info.LogsFiles.Add(new DatabaseFile {LogicalName = logFile.Name, PhysicalPath = logFile.FileName});
             }
 
             return info;

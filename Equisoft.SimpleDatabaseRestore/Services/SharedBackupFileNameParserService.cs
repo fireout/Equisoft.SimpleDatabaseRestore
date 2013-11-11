@@ -14,10 +14,10 @@ namespace Equisoft.SimpleDatabaseRestore.Services
             values.Add("timestamp", filenameWithoutExtension.Substring(timestampPosition + 1));
 
 
-            var directoryWithoutRoot = directory.Replace(root, "").Trim('\\');
+            string directoryWithoutRoot = directory.Replace(root, "").Trim('\\');
 
             int serverPosition = directoryWithoutRoot.IndexOf('\\');
-            values.Add("server", directoryWithoutRoot.Substring(0,serverPosition));
+            values.Add("server", directoryWithoutRoot.Substring(0, serverPosition));
             string instance = directoryWithoutRoot.Substring(serverPosition + 1);
 
             if (instance.EndsWith("\\"))

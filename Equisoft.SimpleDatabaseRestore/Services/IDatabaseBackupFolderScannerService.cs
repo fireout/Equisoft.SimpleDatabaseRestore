@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.IO;
 using Equisoft.SimpleDatabaseRestore.Models;
 
 namespace Equisoft.SimpleDatabaseRestore.Services
