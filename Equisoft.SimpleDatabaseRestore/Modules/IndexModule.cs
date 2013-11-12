@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Equisoft.SimpleDatabaseRestore.Extensions;
 using Equisoft.SimpleDatabaseRestore.Models;
 using Equisoft.SimpleDatabaseRestore.Repositories;
 using Nancy;
@@ -16,6 +17,8 @@ namespace Equisoft.SimpleDatabaseRestore.Modules
         {
             this.sharedBackupsRepository = sharedBackupsRepository;
             this.targetDatabaseServerRepositoty = targetDatabaseServerRepositoty;
+
+            this.RequiresWindowsAuthentication();
 
             Get["/"] = Index;
         }

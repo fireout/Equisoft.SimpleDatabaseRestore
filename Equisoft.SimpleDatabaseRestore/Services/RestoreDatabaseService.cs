@@ -1,6 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
+using System.Threading.Tasks;
+using System.Web.Management;
 using Equisoft.SimpleDatabaseRestore.Commands;
 using Equisoft.SimpleDatabaseRestore.Models;
 using Equisoft.SimpleDatabaseRestore.Repositories;
@@ -48,14 +51,14 @@ namespace Equisoft.SimpleDatabaseRestore.Services
                 };
         }
 
-        public void Restore(DatabaseRestoreRequest request)
+        public void Restore(DatabaseRestoreRequest request, PercentCompleteEventHandler percentCompleteDelegate)
         {
             var server = new Server(request.TargetInstance);
             Database database = server.Databases[request.TargetDatabase];
 
             // Start by locking down the database
             database.DatabaseOptions.UserAccess = DatabaseUserAccess.Single;
-            database.Alter();
+            database.Alter(TerminationClause.RollbackTransactionsImmediately);
 
             var restoreDb = new Restore { Database = database.Name, Action = RestoreActionType.Database };
 
@@ -75,8 +78,15 @@ namespace Equisoft.SimpleDatabaseRestore.Services
                                                              fileToRestore.TargetPhysicalPath));
             }
 
+            if (percentCompleteDelegate != null)
+            {
+                restoreDb.PercentComplete += percentCompleteDelegate;
+            }
+
             // Magic!
             restoreDb.SqlRestore(server);
+
+            restoreDb.SqlRestoreAsync(server); 
 
             // After the restore, ensure the recovery model is set to simple.
             // Since we only support DEV/TEST/DEMO, we dont want the overhead of the other recovery models.
@@ -106,6 +116,110 @@ namespace Equisoft.SimpleDatabaseRestore.Services
             }
 
         }
+
+
+
+        public  Task<string> RestoreAsync(DatabaseRestoreRequest request, PercentCompleteEventHandler percentCompleteDelegate)
+        {
+
+
+
+            var server = new Server(request.TargetInstance);
+            Database database = server.Databases[request.TargetDatabase];
+
+            // Start by locking down the database
+            database.DatabaseOptions.UserAccess = DatabaseUserAccess.Single;
+            database.Alter(TerminationClause.RollbackTransactionsImmediately);
+
+            var restoreDb = new Restore { Database = database.Name, Action = RestoreActionType.Database };
+
+            //Specify whether you want to restore database or files or log etc
+            restoreDb.Devices.AddDevice(request.FullBackupFile, DeviceType.File);
+
+            // For now we only support database replacement.
+            restoreDb.ReplaceDatabase = true;
+
+            // For full backup no recovery is not usefull. Will need to to change this if support for restoring transactional backup file happens.
+            restoreDb.NoRecovery = false;
+
+            // Associate the correct physical path for each file to be restored
+            foreach (FileToRestore fileToRestore in request.FilesLists)
+            {
+                restoreDb.RelocateFiles.Add(new RelocateFile(fileToRestore.BackupLogicalName,
+                                                             fileToRestore.TargetPhysicalPath));
+            }
+
+            if (percentCompleteDelegate != null)
+            {
+                restoreDb.PercentComplete += percentCompleteDelegate;
+            }
+
+            // Magic!
+            //restoreDb.SqlRestore(server);
+
+            var tcs = new TaskCompletionSource<string>();
+
+            restoreDb.Complete += (sender, e) => TransferCompletion<string>(tcs, e, e.ToString, null);
+
+            restoreDb.SqlRestoreAsync(server);
+
+            tcs.Task.ContinueWith(task => FinishRestore(request, database, server));
+            
+            return tcs.Task; 
+        }
+
+        private static void FinishRestore(DatabaseRestoreRequest request, Database database, Server server)
+        {
+
+            // After the restore, ensure the recovery model is set to simple.
+            // Since we only support DEV/TEST/DEMO, we dont want the overhead of the other recovery models.
+            database.RecoveryModel = RecoveryModel.Simple;
+            database.Alter();
+
+            string sqlConnectionString =
+                string.Format("Integrated Security=SSPI;Persist Security Info=True;Initial Catalog={1};Data Source={0}",
+                              server.Name, database.Name);
+
+            foreach (var script in request.ScriptsToExecute)
+            {
+                var fileInfo = new FileInfo(script);
+
+
+                string sql;
+
+                using (var text = fileInfo.OpenText())
+                {
+                    sql = text.ReadToEnd();
+                    text.Close();
+                }
+
+
+                SqlConnection connection = new SqlConnection(sqlConnectionString);
+                Server srv = new Server(new ServerConnection(connection));
+                srv.ConnectionContext.SqlExecutionModes = SqlExecutionModes.ExecuteAndCaptureSql;
+                srv.ConnectionContext.ExecuteNonQuery(sql);
+            }
+        }
+
+        private static void TransferCompletion<T>(
+            TaskCompletionSource<string> tcs, ServerMessageEventArgs args,
+            Func<string> getResult, Action unregisterHandler)
+        {
+
+            if (args.Error != null)
+            {
+                tcs.TrySetException(new SqlExecutionException(args.Error.Message));
+
+            }
+            else
+            {
+                tcs.TrySetResult(args.ToString());
+
+            }
+            if (unregisterHandler != null) 
+                unregisterHandler();
+        }
+
 
         public DatabaseRestoreRequest GenerateDatabaseRestoreRequestService(string backupFileName,
                                                                             Server server, Database database)
