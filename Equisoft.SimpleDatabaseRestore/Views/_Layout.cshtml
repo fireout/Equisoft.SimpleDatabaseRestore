@@ -12,49 +12,98 @@
     <link rel="stylesheet" href="~/Content/styles/chosen.min.css" />
     <link rel="stylesheet" href="~/Content/styles/bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="~/Content/styles/bootstrap/bootstrap-theme.min.css" />
+    <link rel="stylesheet" href="~/Content/styles/bootstrap-notify.css"/>
+    <link rel="stylesheet" href="~/Content/styles/alert-blackgloss.css"/>
     <script type="text/javascript" src="@Url.Content("~/content/scripts/jquery-1.9.1.min.js")"></script>
+    <script type="text/javascript" src="~/Content/scripts/jquery.signalR-1.0.0.min.js"></script>
+    <script type="text/javascript"  src="~/signalr/hubs"></script>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h3 class="text-muted">
-                <a class="brand" href="@Url.Content("~/")">
-                    <img alt="Equisoft" src="~/Content/styles/logo.png" />
-                </a>Simple Database Restore</h3>
+    <body>
+        <div class='notifications top-right'></div>
+        <div class="container">
+            <div class="header">
+                <h3 class="text-muted">
+                    <a class="brand" href="@Url.Content("~/")">
+                        <img alt="Equisoft" src="~/Content/styles/logo.png" />
+                    </a>Simple Database Restore</h3>
 
-        </div>
-        <div class="row">
-            @if (ViewBag.Errors != null)
-            {
-                <div class="alert alert-danger">
-                    @ViewBag.Errors
-                </div>
-            }
+            </div>
+            <div class="row">
+                @if (ViewBag.Errors != null)
+                {
+                    <div class="alert alert-danger">
+                        @ViewBag.Errors
+                    </div>
+                }
             
-            @if (ViewBag.Success != null)
-            {
-                <div class="alert alert-success">
-                    @ViewBag.Success
-                </div>
-            }
+                @if (ViewBag.Success != null)
+                {
+                    <div class="alert alert-success">
+                        @ViewBag.Success
+                    </div>
+                }
+            
+               @* <div id="restore-message" class="alert alert-info" style="display: none;">
+                    <ul id="restore-message-list"></ul>
+                </div>*@
 
 
-            @RenderBody()
+                @RenderBody()
+            </div>
+            <hr />
+            <footer>
+                <p>&copy; EquiSoft 2013 | <a href="https://jira.equisoft.com/browse/EQT">Report an issue or submit an idea</a></p>
+            </footer>
         </div>
-        <hr />
-        <footer>
-            <p>&copy; EquiSoft 2013</p>
-        </footer>
-    </div>
-    <script type="text/javascript" src="@Url.Content("~/content/scripts/bootstrap.min.js")"></script>
-    <script type="text/javascript" src="@Url.Content("~/content/scripts/chosen.jquery.min.js")"></script>
-    <script type="text/javascript">
+        <script type="text/javascript" src="@Url.Content("~/content/scripts/bootstrap.min.js")"></script>
+        <script type="text/javascript" src="@Url.Content("~/content/scripts/bootstrap-notify.js")"></script>
+        <script type="text/javascript" src="@Url.Content("~/content/scripts/chosen.jquery.min.js")"></script>
+        <script type="text/javascript">
 
 
-        $(function () {
-            $('.chosen').chosen({ search_contains: true, allow_single_deselect: true });
-        });
+            $(function () {
+                $('.chosen').chosen({ search_contains: true, allow_single_deselect: true });
+            });
 
-    </script>
-</body>
+            var restore = null;
+            $(function () {
+                restore = $.connection.restoreDatabase;
+                
+
+                restore.client.showError = function (message) {
+                    $('.top-right').notify({
+                        type : 'danger',
+                        message: { html: message },
+                        fadeOut: { enabled: false }
+                    }).show();
+                };
+
+                restore.client.showSuccess = function (message) {
+                    $('.top-right').notify({
+                        message: { html: message },
+                        fadeOut: { enabled: false }
+                    }).show();
+                };
+
+                restore.client.showInfo = function (message) {
+                    $('.top-right').notify({
+                        type: 'info',
+                        message: { html: message },
+                        fadeOut: { enabled: true, delay: 10000 }
+                    }).show();
+                };
+                
+                restore.client.showProgress = function (message) {
+                    $('.top-right').notify({
+                        type: 'info',
+                        message: { html: message },
+                        fadeOut: { enabled: true, delay: 4000 }
+                    }).show();
+
+                };
+
+                $.connection.hub.start();
+            });
+        </script>
+    </body>
 </html>

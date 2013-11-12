@@ -50,9 +50,9 @@
 
 
 <form action="~/Restore" method="POST" enctype="multipart/form-data">
-    <input type="hidden" name="TargetDatabase" value="@Model.TargetDatabase"/>
-    <input type="hidden" name="TargetInstance" value="@Model.TargetInstance"/>
-    <input type="hidden" name="BackupFile" value="@Model.FullBackupFile"/>
+    <input type="hidden" name="TargetDatabase" id="TargetDatabase" value="@Model.TargetDatabase"/>
+    <input type="hidden" name="TargetInstance" id="TargetInstance" value="@Model.TargetInstance"/>
+    <input type="hidden" name="BackupFile" id="BackupFile" value="@Model.FullBackupFile"/>
     <div class="form-group" style="display: none;">
         <label for="Additional script">Upload additional script to execute</label>
         <input type="file" name="myfiles" multiple="multiple" />
@@ -60,7 +60,23 @@
             <span class="glyphicon .glyphicon-info-sign"></span>Multiple files is not supported on IE 9 and under
         </div>
     </div>
-    <button type="submit" class="btn btn-lg btn-danger">Confirm Restore</button>
+    <button type="button" id="btn-submit" class="btn btn-lg btn-danger" data-loading-text="Request sent...">Confirm Restore</button>
     <a href="~/" class="btn btn-default">Cancel</a>
     
 </form>
+
+<script type="text/javascript">
+    
+
+    $(function() {
+
+        $("#btn-submit").click(function () {
+            var btn = $(this);
+            btn.button('loading');
+            var restoreDatabase = $.connection.restoreDatabase;
+            
+            restoreDatabase.server.restore($("#BackupFile").val(), $("#TargetInstance").val(), $("#TargetDatabase").val());
+           
+        });
+    })
+</script>

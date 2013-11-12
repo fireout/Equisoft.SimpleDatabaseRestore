@@ -57,7 +57,7 @@ namespace Equisoft.SimpleDatabaseRestore.Repositories
                     var serverInfo = new Server(foundInstance.Server + "\\" + foundInstance.InstanceName);
 
                     foreach (Database database in serverInfo.Databases.Cast<Database>()
-                                                            .Where(database => database.Status == DatabaseStatus.Normal)
+                                                            .Where(database => database.Status == DatabaseStatus.Normal && !database.IsSystemObject)
                         )
                     {
                         dbInstance.Databases.Add(new Models.Database {Name = database.Name});

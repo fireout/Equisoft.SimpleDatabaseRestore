@@ -1,4 +1,5 @@
 ﻿using Equisoft.SimpleDatabaseRestore.Commands;
+using Equisoft.SimpleDatabaseRestore.Extensions;
 using Equisoft.SimpleDatabaseRestore.Services;
 using Nancy;
 using Nancy.Responses;
@@ -12,6 +13,9 @@ namespace Equisoft.SimpleDatabaseRestore.Modules
         public ResquestRestoreModule(IRestoreDatabaseService restoreDatabaseService)
         {
             this.restoreDatabaseService = restoreDatabaseService;
+
+            this.RequiresWindowsAuthentication();
+
             Get["/RequestRestore"] = ConfirmRestoreRequest;
 
             Post["/Restore"] = Restore;
@@ -26,7 +30,7 @@ namespace Equisoft.SimpleDatabaseRestore.Modules
             DatabaseRestoreRequest request = restoreDatabaseService.GenerateRequest(backupFileName, targetInstanceName,
                                                                                     targetDatabase);
 
-            restoreDatabaseService.Restore(request);
+            restoreDatabaseService.Restore(request, null);
 
             Session["Success"] = string.Format("Database {0} was successfuly restored on {1}", targetDatabase,
                                                targetInstanceName);
