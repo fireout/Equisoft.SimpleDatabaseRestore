@@ -224,7 +224,6 @@ namespace Equisoft.SimpleDatabaseRestore.Services
                 else
                 {
                     FinishRestore(request, database, server);
-                    throw new ArgumentException("sdsdsdsdd");
                     tcs.TrySetResult(args.ToString());
 
                 }
