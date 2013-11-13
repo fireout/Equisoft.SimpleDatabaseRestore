@@ -3,6 +3,8 @@ using Equisoft.SimpleDatabaseRestore.Extensions;
 using Equisoft.SimpleDatabaseRestore.Models;
 using Equisoft.SimpleDatabaseRestore.Repositories;
 using Nancy;
+using System.Threading.Tasks;
+using System;
 
 namespace Equisoft.SimpleDatabaseRestore.Modules
 {
@@ -25,8 +27,14 @@ namespace Equisoft.SimpleDatabaseRestore.Modules
 
         private dynamic Index(dynamic parameters)
         {
-            IList<DatabaseServer> foundFiles = sharedBackupsRepository.GetAllServers();
-            IList<DatabaseServer> targetInstances = targetDatabaseServerRepositoty.GetAll();
+
+            var foundFilesTask = Task.Factory.StartNew(()=>sharedBackupsRepository.GetAllServers());
+            var targetInstancesTask = Task.Factory.StartNew(()=> targetDatabaseServerRepositoty.GetAll());
+
+            Task.WaitAll(foundFilesTask, targetInstancesTask);
+            IList<DatabaseServer> foundFiles = foundFilesTask.Result;
+            IList<DatabaseServer> targetInstances = targetInstancesTask.Result;
+
             dynamic model = new
                 {
                     FoundFiles = foundFiles,

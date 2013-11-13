@@ -86,14 +86,14 @@ namespace Equisoft.SimpleDatabaseRestore.Services
             // Magic!
             restoreDb.SqlRestore(server);
 
-            restoreDb.SqlRestoreAsync(server); 
+            restoreDb.SqlRestoreAsync(server);
 
             // After the restore, ensure the recovery model is set to simple.
             // Since we only support DEV/TEST/DEMO, we dont want the overhead of the other recovery models.
             database.RecoveryModel = RecoveryModel.Simple;
             database.Alter();
 
-            string sqlConnectionString = string.Format("Integrated Security=SSPI;Persist Security Info=True;Initial Catalog={1};Data Source={0}",server.Name,database.Name);
+            string sqlConnectionString = string.Format("Integrated Security=SSPI;Persist Security Info=True;Initial Catalog={1};Data Source={0}", server.Name, database.Name);
 
             foreach (var script in request.ScriptsToExecute)
             {
@@ -101,13 +101,13 @@ namespace Equisoft.SimpleDatabaseRestore.Services
 
 
                 string sql;
-                
+
                 using (var text = fileInfo.OpenText())
                 {
-                    sql = text.ReadToEnd();   
+                    sql = text.ReadToEnd();
                     text.Close();
                 }
-                 
+
 
                 SqlConnection connection = new SqlConnection(sqlConnectionString);
                 Server srv = new Server(new ServerConnection(connection));
@@ -119,7 +119,7 @@ namespace Equisoft.SimpleDatabaseRestore.Services
 
 
 
-        public  Task<string> RestoreAsync(DatabaseRestoreRequest request, PercentCompleteEventHandler percentCompleteDelegate)
+        public Task<string> RestoreAsync(DatabaseRestoreRequest request, PercentCompleteEventHandler percentCompleteDelegate)
         {
 
 
@@ -159,13 +159,20 @@ namespace Equisoft.SimpleDatabaseRestore.Services
 
             var tcs = new TaskCompletionSource<string>();
 
-            restoreDb.Complete += (sender, e) => TransferCompletion<string>(tcs, e, e.ToString, null);
+            restoreDb.Complete += (sender, e) => TransferCompletion<string>(tcs, e, e.ToString, null, request, database, server);
 
-            restoreDb.SqlRestoreAsync(server);
+            try
+            {
+                restoreDb.SqlRestoreAsync(server);
+            }
+            catch (Exception ex)
+            {
 
-            tcs.Task.ContinueWith(task => FinishRestore(request, database, server));
-            
-            return tcs.Task; 
+                tcs.TrySetException(ex);
+            }
+            //tcs.Task.ContinueWith(task => FinishRestore(request, database, server));
+
+            return tcs.Task;
         }
 
         private static void FinishRestore(DatabaseRestoreRequest request, Database database, Server server)
@@ -203,21 +210,32 @@ namespace Equisoft.SimpleDatabaseRestore.Services
 
         private static void TransferCompletion<T>(
             TaskCompletionSource<string> tcs, ServerMessageEventArgs args,
-            Func<string> getResult, Action unregisterHandler)
+            Func<string> getResult, Action unregisterHandler, DatabaseRestoreRequest request, Database database, Server server)
         {
-
-            if (args.Error != null)
+            try
             {
-                tcs.TrySetException(new SqlExecutionException(args.Error.Message));
+
+
+                // God knows why if a backup successfuly completed the SqlError object is set with a success message and a code 3014.
+                if (args.Error != null && args.Error.Number != 3014)
+                {
+                    tcs.TrySetException(new SqlExecutionException(args.Error.Message));
+                }
+                else
+                {
+                    FinishRestore(request, database, server);
+                    throw new ArgumentException("sdsdsdsdd");
+                    tcs.TrySetResult(args.ToString());
+
+                }
+                if (unregisterHandler != null)
+                    unregisterHandler();
 
             }
-            else
+            catch (Exception ex)
             {
-                tcs.TrySetResult(args.ToString());
-
+                tcs.TrySetException(ex);
             }
-            if (unregisterHandler != null) 
-                unregisterHandler();
         }
 
 
