@@ -11,18 +11,39 @@ using Nancy.Bootstrapper;
 using Nancy.Bootstrappers.Ninject;
 using Nancy.Session;
 using Ninject;
+using log4net.Config;
+using log4net;
+using NewRelicAgent = NewRelic.Api.Agent.NewRelic;
 
 namespace Equisoft.SimpleDatabaseRestore
 {
     public class Bootstrapper : NinjectNancyBootstrapper
     {
+
+        private static readonly ILog log = LogManager.GetLogger(typeof(Bootstrapper));
         protected override void ApplicationStartup(IKernel container, IPipelines pipelines)
         {
             base.ApplicationStartup(container, pipelines);
 
+            // configure log4net
+            XmlConfigurator.Configure();
+
+            // Log all errors with log4net and notify New Relic.
+            pipelines.OnError.AddItemToStartOfPipeline(
+                            (context, ex) =>
+                            {
+                                log.Error(ex);
+                                NewRelicAgent.NoticeError(ex);
+                                return null;
+                            });
+
+            // Leave this on always...no point in not showing the full error since this is used internally only.
             StaticConfiguration.DisableErrorTraces = false;
 
+            //Activate cookie-based Session variables 
             CookieBasedSessions.Enable(pipelines);
+
+            // Transform messages session variables in ViewBag variables.
             pipelines.BeforeRequest += ctx =>
                 {
                     if (ctx.Request.Session["Errors"] != null)
@@ -39,13 +60,14 @@ namespace Equisoft.SimpleDatabaseRestore
                     return null;
                 };
 
+            // Configure SignalR with Ninject Kernel.
             var resolver = new NinjectSignalRDependencyResolver(this.ApplicationContainer);
-
             var config = new HubConfiguration()
             {
                 Resolver = resolver
             };
 
+            // Register SignalR routes
             RouteTable.Routes.MapHubs(config);
         }
 
@@ -95,25 +117,6 @@ namespace Equisoft.SimpleDatabaseRestore
                              .InSingletonScope()
                              .WithConstructorArgument("rootPath",
                                                       ConfigurationManager.AppSettings["sqlScriptsPath"]);
-        }
-    }
-
-    internal class NinjectSignalRDependencyResolver : DefaultDependencyResolver
-    {
-        private readonly IKernel _kernel;
-        public NinjectSignalRDependencyResolver(IKernel kernel)
-        {
-            _kernel = kernel;
-        }
-
-        public override object GetService(Type serviceType)
-        {
-            return _kernel.TryGet(serviceType) ?? base.GetService(serviceType);
-        }
-
-        public override IEnumerable<object> GetServices(Type serviceType)
-        {
-            return _kernel.GetAll(serviceType).Concat(base.GetServices(serviceType));
         }
     }
 }
