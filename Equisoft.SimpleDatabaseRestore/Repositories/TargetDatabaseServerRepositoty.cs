@@ -30,7 +30,7 @@ namespace Equisoft.SimpleDatabaseRestore.Repositories
 
 
             var foundInstances = table.AsEnumerable()
-                                      .Where(row => IsServer(row.Field<string>("ServerName")))
+                                      .Where(row => IsAllowed(row.Field<string>("ServerName")))
                                       .Select(
                                           row =>
                                           new
@@ -56,9 +56,11 @@ namespace Equisoft.SimpleDatabaseRestore.Repositories
                 {
                     var serverInfo = new Server(foundInstance.Server + "\\" + foundInstance.InstanceName);
 
-                    foreach (Database database in serverInfo.Databases.Cast<Database>()
-                                                            .Where(database => database.Status == DatabaseStatus.Normal && !database.IsSystemObject)
-                        )
+                    // Only allowed Online database (Status == DatabaseStatus.Normal) and non system database (!database.IsSystemObject)
+                    var allowedDatabase = serverInfo.Databases.Cast<Database>()
+                                                    .Where(database => database.Status == DatabaseStatus.Normal && !database.IsSystemObject);
+
+                    foreach (Database database in allowedDatabase)
                     {
                         dbInstance.Databases.Add(new Models.Database {Name = database.Name});
                     }
@@ -100,7 +102,7 @@ namespace Equisoft.SimpleDatabaseRestore.Repositories
             return info;
         }
 
-        private bool IsServer(string serverName)
+        private bool IsAllowed(string serverName)
         {
             if (serversToExclude.Contains(serverName))
             {

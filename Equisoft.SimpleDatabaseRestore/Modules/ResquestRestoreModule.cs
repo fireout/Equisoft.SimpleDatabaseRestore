@@ -3,6 +3,7 @@ using Equisoft.SimpleDatabaseRestore.Extensions;
 using Equisoft.SimpleDatabaseRestore.Services;
 using Nancy;
 using Nancy.Responses;
+using Nancy.ModelBinding;
 
 namespace Equisoft.SimpleDatabaseRestore.Modules
 {
@@ -15,28 +16,30 @@ namespace Equisoft.SimpleDatabaseRestore.Modules
             this.restoreDatabaseService = restoreDatabaseService;
 
             this.RequiresWindowsAuthentication();
-
+            
             Get["/RequestRestore"] = ConfirmRestoreRequest;
 
-            Post["/Restore"] = Restore;
+        //    Post["/Restore"] = Restore;
         }
 
-        private dynamic Restore(dynamic parameters)
-        {
-            string targetInstanceName = Request.Form.TargetInstance;
-            string targetDatabase = Request.Form.TargetDatabase;
-            string backupFileName = Request.Form.BackupFile;
 
-            DatabaseRestoreRequest request = restoreDatabaseService.GenerateRequest(backupFileName, targetInstanceName,
-                                                                                    targetDatabase);
 
-            restoreDatabaseService.Restore(request, null);
+        //private dynamic Restore(dynamic parameters)
+        //{
+        //    string targetInstanceName = Request.Form.TargetInstance;
+        //    string targetDatabase = Request.Form.TargetDatabase;
+        //    string backupFileName = Request.Form.BackupFile;
 
-            Session["Success"] = string.Format("Database {0} was successfuly restored on {1}", targetDatabase,
-                                               targetInstanceName);
+        //    DatabaseRestoreRequest request = restoreDatabaseService.GenerateRequest(backupFileName, targetInstanceName,
+        //                                                                            targetDatabase);
 
-            return new RedirectResponse("/");
-        }
+        //    restoreDatabaseService.Restore(request, null);
+
+        //    Session["Success"] = string.Format("Database {0} was successfuly restored on {1}", targetDatabase,
+        //                                       targetInstanceName);
+
+        //    return new RedirectResponse("/");
+        //}
 
         private dynamic ConfirmRestoreRequest(dynamic parameters)
         {
@@ -45,13 +48,9 @@ namespace Equisoft.SimpleDatabaseRestore.Modules
                 string.IsNullOrWhiteSpace(Request.Query.backupFileName))
             {
                 Session["Errors"] = "Please select the backup file and the target database before submitting a request.";
-                //new List<string>
-                //{
-                //    "Please select the backup file and the target database before submitting a request."
-                //};
+               
                 return new RedirectResponse("/");
             }
-
 
             string[] targetDatabaseParams = ((string) Request.Query.targetDatabase).Split('.');
 
