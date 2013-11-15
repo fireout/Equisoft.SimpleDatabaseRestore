@@ -28,7 +28,7 @@ namespace Equisoft.SimpleDatabaseRestore.Repositories
                 {
                     rootPath, // Global path
                     Path.Combine(rootPath, serverName, instanceName, "_Scripts"), // Instance specific scripts
-                    Path.Combine(rootPath, serverName, instanceName, database, "_Scripts") // Database specific scripts
+                    Path.Combine(rootPath, serverName, instanceName, database) // Database specific scripts
                 };
             
             var scripts = new List<string>();
