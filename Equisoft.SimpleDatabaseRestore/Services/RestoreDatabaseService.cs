@@ -154,23 +154,23 @@ namespace Equisoft.SimpleDatabaseRestore.Services
                 restoreDb.PercentComplete += percentCompleteDelegate;
             }
 
-            // Magic!
-            //restoreDb.SqlRestore(server);
 
             var tcs = new TaskCompletionSource<string>();
 
-            restoreDb.Complete += (sender, e) => TransferCompletion<string>(tcs, e, e.ToString, null, request, database, server);
+
+            //Handle the Complete event with a TaskCompletionSource that way when can control when the task is completed.
+            restoreDb.Complete += (sender, e) => RestoreWasCompleted(tcs, e, request, database, server);
 
             try
             {
+                // Start asynchrounos restore. That way the ThreadPool is not blocked,
                 restoreDb.SqlRestoreAsync(server);
             }
             catch (Exception ex)
             {
-
+                // An exception occured. notify the task
                 tcs.TrySetException(ex);
             }
-            //tcs.Task.ContinueWith(task => FinishRestore(request, database, server));
 
             return tcs.Task;
         }
@@ -208,14 +208,10 @@ namespace Equisoft.SimpleDatabaseRestore.Services
             }
         }
 
-        private static void TransferCompletion<T>(
-            TaskCompletionSource<string> tcs, ServerMessageEventArgs args,
-            Func<string> getResult, Action unregisterHandler, DatabaseRestoreRequest request, Database database, Server server)
+        private static void RestoreWasCompleted(TaskCompletionSource<string> tcs, ServerMessageEventArgs args, DatabaseRestoreRequest request, Database database, Server server)
         {
             try
             {
-
-
                 // God knows why if a backup successfuly completed the SqlError object is set with a success message and a code 3014.
                 if (args.Error != null && args.Error.Number != 3014)
                 {
@@ -223,13 +219,12 @@ namespace Equisoft.SimpleDatabaseRestore.Services
                 }
                 else
                 {
+                    // Execute additional action after the restore was completed
                     FinishRestore(request, database, server);
+
+                    //Task completed!
                     tcs.TrySetResult(args.ToString());
-
                 }
-                if (unregisterHandler != null)
-                    unregisterHandler();
-
             }
             catch (Exception ex)
             {
